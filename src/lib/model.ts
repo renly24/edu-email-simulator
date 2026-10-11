@@ -7,8 +7,8 @@ export const ERROR_COLOR = "#c62828";
 export const SAFE_COLOR = "#2e7d32";
 
 /** 登場人物とメールアドレス */
-export const TARO = { name: "たろう", address: "taro@alpha.example.jp" };
-export const HANAKO = { name: "はなこ", address: "hanako@beta.example.com" };
+export const TARO = { name: "たろう", address: "taro@example.ne.jp" };
+export const HANAKO = { name: "はなこ", address: "hanako@example.ed.jp" };
 
 export const CHAPTERS = [
   { id: 1, name: "メールのしくみ", color: "#455a64" },
@@ -68,6 +68,10 @@ export type Stage =
   /** 予想問題の場面の絵 */
   | { kind: "scene"; id: "offline" | "pop" }
   | { kind: "address" }
+  /** URL とドメイン名（教科書の図3・表1） */
+  | { kind: "domain" }
+  /** 電子メールのしくみ（教科書の図4） */
+  | { kind: "figure" }
   /** メールが届くまでの図（1つずつ進める） */
   | { kind: "journey"; id: JourneyId }
   /** 宛先を選んで送ってみる */
@@ -115,6 +119,15 @@ export const SLIDES: Slide[] = [
     points: ["@ の右側（ドメイン名）＝届け先のメールサーバ", "@ の左側（ユーザ名）＝サーバの中のメールボックス"],
   },
   {
+    id: "domain",
+    chapter: 1,
+    title: "ドメイン名のしくみ",
+    description:
+      "ドメイン名は、Web ページの URL にも使われています。「example.ed.jp」は、右から「jp（日本）」「ed（小・中学校、高等学校）」「example（組織名）」と読み、右へいくほど大きな区切りになります。日本の組織に割り当てられる JP ドメイン名には、組織の種類ごとに決まった名前があります。",
+    stage: { kind: "domain" },
+    points: ["ドメイン名は右から：トップレベルドメイン → 組織種別 → 組織名", "co.jp は会社、ed.jp は学校、go.jp は政府機関"],
+  },
+  {
     chapter: 1,
     title: "相手の電源が切れていたら？",
     description: "はなこのスマホは電源が切れています。このとき、たろうがはなこにメールを送ると、どうなるでしょうか。",
@@ -144,7 +157,7 @@ export const SLIDES: Slide[] = [
     chapter: 2,
     title: "SMTP：サーバどうしの会話",
     description:
-      "メールを送るときのプロトコルが SMTP（Simple Mail Transfer Protocol）です。メールソフト → 送信サーバ、送信サーバ → 相手のサーバの2か所で使われます。サーバどうしは、短い命令と「250 OK」のような番号付きの返事を交互に送り合ってメールを渡します。",
+      "メールを送るときのプロトコルが SMTP（Simple Mail Transfer Protocol）です。アプリケーション層のプロトコルで、メールソフト → 自分のメールサーバ、メールサーバ → 相手のメールサーバの2か所で使われます。サーバどうしは、短い命令と「250 OK」のような番号付きの返事を交互に送り合ってメールを渡します。",
     stage: { kind: "smtp" },
     points: ["MAIL FROM で差出人、RCPT TO で宛先を伝える", "DATA のあとに、メールの中身（ヘッダと本文）を送る"],
   },
@@ -153,19 +166,19 @@ export const SLIDES: Slide[] = [
     chapter: 2,
     title: "DNS で相手のメールサーバを探す",
     description:
-      "送信サーバは、宛先アドレスの @ より右側（ドメイン名）を DNS サーバに問い合わせて、そのドメインのメールを受け取るサーバ（MX レコード）を調べます。宛先を選んで、DNS に問い合わせてみよう。",
+      "送る側のメールサーバは、宛先アドレスの @ より右側（ドメイン名）を DNS サーバに問い合わせて、そのドメインのメールを受け取るサーバ（MX レコード）を調べます。宛先を選んで、DNS に問い合わせてみよう。",
     stage: { kind: "dns" },
     points: ["DNS は「ドメイン名 → メールサーバ」の電話帳", "ドメイン名を打ち間違えると、メールサーバが見つからない"],
   },
   {
     chapter: 2,
     title: "宛先を打ち間違えたら？",
-    description: "たろうは、はなこのアドレスの「hanako」を「hanaco」と1文字打ち間違えて送ってしまいました。beta.example.com というドメインは正しく存在します。",
+    description: "たろうは、はなこのアドレスの「hanako」を「hanaco」と1文字打ち間違えて送ってしまいました。example.ed.jp というドメインは正しく存在します。",
     stage: { kind: "dns" },
     quiz: {
       kind: "choice",
       gate: true,
-      question: "hanaco@beta.example.com に送ったメールはどうなる？",
+      question: "hanaco@example.ed.jp に送ったメールはどうなる？",
       options: ["DNS がまちがいに気づいて、はなこに届けてくれる", "はなこのメールサーバまでは届くが、「宛先不明」のエラーメールがたろうに返ってくる", "だれにも届かず、エラーも返ってこない"],
       answer: 1,
       ok: "正解！ ドメイン名は正しいので、はなこのメールサーバまでは届きます。でもサーバの中に hanaco というメールボックスはないので、「宛先不明」のエラーメールが返ってきます。次のスライドで試してみよう。",
@@ -213,9 +226,9 @@ export const SLIDES: Slide[] = [
     chapter: 3,
     title: "IMAP：サーバに置いたまま読む",
     description:
-      "IMAP（Internet Message Access Protocol）では、メールはサーバのメールボックスに置いたまま、端末はその中身を見にいきます。パソコンで読んだメールは、スマホでも「既読」になります。メールをクリックして読んでみよう。",
+      "IMAP（Internet Message Access Protocol）では、メールはサーバのメールボックスに置いたまま、端末はその中身を見にいきます。パソコンで読んだメールは、スマホでも「既読」になります。ただし、メールがたまってサーバの容量（ここでは 5 通）を超えると、新しいメールを保存できなくなります。「新しいメールが届く」を何回か押して確かめよう。",
     stage: { kind: "popimap", protos: ["imap"] },
-    points: ["メールはサーバに残り、どの端末からも同じ状態で読める", "既読・削除・フォルダ分けも、すべての端末にそろう"],
+    points: ["メールはサーバに残り、どの端末からも同じ状態で読める", "サーバの容量を超えると、メールの保存や閲覧ができなくなる"],
   },
   {
     chapter: 3,
@@ -223,6 +236,25 @@ export const SLIDES: Slide[] = [
     description: "左が POP、右が IMAP です。どちらも「パソコンで受信 → メールを読む → スマホで受信」と同じ順番で操作して、結果のちがいを比べよう。両方でスマホまで受信すると完了です。",
     stage: { kind: "popimap", protos: ["pop", "imap"] },
     quiz: { kind: "popimap" },
+  },
+  {
+    chapter: 3,
+    title: "教科書の問題にチャレンジ",
+    description: "図は、教科書の「電子メールのしくみ」です。①〜④のどこで、どのプロトコルが使われているかを思い出しながら答えよう。",
+    stage: { kind: "figure" },
+    quiz: {
+      kind: "choice",
+      question: "電子メールで使用されるプロトコル「POP」の説明として、適切なものはどれか。",
+      options: [
+        "メールサーバから電子メールを受信するために使用するプロトコルで、メールをサーバ上で管理する機能を持つ。",
+        "メールサーバ間でメールメッセージを交換するときに使用する。",
+        "メールサーバのメールボックスから電子メールを取り出すときに使用する。",
+        "利用者が電子メールを送るときに使用する。",
+      ],
+      answer: 2,
+      ok: "正解！ POP は、メールサーバのメールボックスからメールを取り出す（ダウンロードする）プロトコルです。1つ目はメールをサーバ上で管理する IMAP、2つ目と4つ目は SMTP の説明です。",
+      ng: "POP は、メールサーバのメールボックスからメールを取り出す（ダウンロードする）プロトコルです。メールをサーバ上で管理するのは IMAP、サーバ間の交換や送信に使うのは SMTP です。",
+    },
   },
   {
     id: "sort",
@@ -306,7 +338,7 @@ export const SLIDES: Slide[] = [
   {
     chapter: 5,
     title: "まとめテスト",
-    description: "8問のまとめテストです。全部答えたら「採点する」を押そう。結果の画面に名前を入れて、スクリーンショットで提出します。",
+    description: "10問のまとめテストです。全部答えたら「採点する」を押そう。結果の画面に名前を入れて、スクリーンショットで提出します。",
     stage: { kind: "test" },
     quiz: { kind: "test" },
   },
@@ -329,8 +361,8 @@ export const SORT_BINS: { id: SortBin; title: string; color: string; bg: string 
 ];
 
 export const SORT_ITEMS: { label: string; answer: SortBin }[] = [
-  { label: "メールソフトから送信サーバへメールを送る", answer: "smtp" },
-  { label: "送信サーバから相手のメールサーバへ転送する", answer: "smtp" },
+  { label: "メールソフトからメールサーバへメールを送る", answer: "smtp" },
+  { label: "メールサーバから相手のメールサーバへ転送する", answer: "smtp" },
   { label: "受信したメールを端末に移し、サーバから消す", answer: "pop" },
   { label: "サーバの容量をあまり使わない", answer: "pop" },
   { label: "メールをサーバに置いたまま読む", answer: "imap" },
@@ -348,12 +380,19 @@ export interface TestQuestion {
 }
 
 export const TEST_QUESTIONS: TestQuestion[] = [
-  { question: "hanako@beta.example.com の「beta.example.com」の部分は？", options: ["ユーザ名", "ドメイン名", "パスワード"], answer: 1, review: "address" },
+  { question: "hanako@example.ed.jp の「example.ed.jp」の部分は？", options: ["ユーザ名", "ドメイン名", "パスワード"], answer: 1, review: "address" },
   { question: "メールを送信するときに使うプロトコルは？", options: ["SMTP", "POP", "IMAP"], answer: 0, review: "smtp" },
-  { question: "送信サーバが、宛先のメールサーバを調べるときに問い合わせるのは？", options: ["DHCP サーバ", "Web サーバ", "DNS サーバ"], answer: 2, review: "dns" },
+  { question: "メールサーバが、届け先のメールサーバを調べるときに問い合わせるのは？", options: ["DHCP サーバ", "Web サーバ", "DNS サーバ"], answer: 2, review: "dns" },
   { question: "相手のスマホの電源が切れているとき、送ったメールはどこで待つ？", options: ["送った人のパソコン", "相手のメールサーバのメールボックス", "DNS サーバ"], answer: 1, review: "journey" },
+  { question: "ドメイン名が「go.jp」で終わるのは、どの種類の組織？", options: ["会社", "政府機関", "大学"], answer: 1, review: "domain" },
   { question: "受信したメールを端末にダウンロードし、サーバから消すのは？", options: ["POP", "IMAP", "SMTP"], answer: 0, review: "pop" },
   { question: "複数の端末で、同じメールを同じ状態（既読など）で読みたい。向いているのは？", options: ["POP", "IMAP", "SMTP"], answer: 1, review: "imap" },
+  {
+    question: "IMAP で、メールがたまってサーバの容量を超えるとどうなる？",
+    options: ["古いメールが自動で端末に移る", "メールの保存や閲覧ができなくなる", "容量が自動で増える"],
+    answer: 1,
+    review: "imap",
+  },
   { question: "ほかの受信者にアドレスを見せずに送りたい人を入れる欄は？", options: ["To", "CC", "BCC"], answer: 2, review: "bcc" },
   { question: "メールの通信を暗号化して、途中で読まれないようにするしくみは？", options: ["Base64", "SSL/TLS", "MX レコード"], answer: 1, review: "encrypt" },
 ];

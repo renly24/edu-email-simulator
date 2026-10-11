@@ -20,6 +20,9 @@ const HW = 62;
 const HH = 40;
 /** 線を引く秒数 */
 const DRAW = 0.7;
+const CIRCLED = ["①", "②", "③", "④"];
+/** 教科書の図4の番号の色 */
+const NO_COLOR = "#7e57c2";
 
 function timing(delay: number, dur = 0.25, extra?: Record<string, string>): CSSProperties {
   return {
@@ -88,6 +91,7 @@ function Arrow({ step, current, animate }: { step: JourneyStep; current: boolean
             strokeWidth={4}
             paintOrder="stroke"
           >
+            {step.no ? `${CIRCLED[step.no - 1]} ` : ""}
             {step.say}
           </text>
           {/* 手紙や問い合わせが、線に沿って真ん中まで進む */}
@@ -145,9 +149,10 @@ export default function MailJourney({ journey, onDone, compact }: { journey: Jou
   };
 
   const shown = journey.steps.slice(0, step);
-  const stored = journey.stored && shown.some((s) => s.to === "recv" && s.kind === "mail");
+  const stored = shown.some((s) => s.kind === "store");
+  const storing = current?.kind === "store";
   const phoneAwake = shown.some((s) => s.from === "phone");
-  const activeColor = (id: NodeId) => (current && (current.from === id || current.to === id) ? colorOf(current) : null);
+  const activeColor = (id: NodeId) => (current && (current.from === id || current.to === id) ? (storing ? NO_COLOR : colorOf(current)) : null);
   const recv = NODES.recv;
 
   return (
@@ -173,16 +178,21 @@ export default function MailJourney({ journey, onDone, compact }: { journey: Jou
           {/* 組織の区切り */}
           <rect x={8} y={140} width={370} height={182} rx={12} fill="#e3f2fd" opacity={0.5} />
           <text x={18} y={158} fontSize={12} fontWeight={700} fill="#1565c0">
-            alpha.example.jp（たろうの組織）
+            example.ne.jp（たろうのプロバイダ）
           </text>
           <rect x={560} y={140} width={200} height={182} rx={12} fill="#fff3e0" opacity={0.6} />
           <text x={570} y={158} fontSize={12} fontWeight={700} fill="#e65100">
-            beta.example.com
+            example.ed.jp
           </text>
 
           {/* はなこのメールボックス */}
           <g>
-            <rect x={recv.x - 58} y={recv.y + 50} width={116} height={30} rx={6} fill={stored ? "#fff8e1" : "#fafafa"} stroke={stored ? "#f9a825" : "#bdbdbd"} strokeWidth={2} />
+            <rect x={recv.x - 58} y={recv.y + 50} width={116} height={30} rx={6} fill={stored ? "#fff8e1" : "#fafafa"} stroke={stored ? "#f9a825" : "#bdbdbd"} strokeWidth={storing ? 4 : 2} />
+            {storing && (
+              <text className={animate ? "pop" : undefined} style={{ "--delay": "0s" } as CSSProperties} x={recv.x + 66} y={recv.y + 70} fontSize={13} fontWeight={700} fill={NO_COLOR}>
+                ③ 保存
+              </text>
+            )}
             <text x={recv.x} y={recv.y + 70} textAnchor="middle" fontSize={12} fontWeight={700} fill="#5d4037">
               {stored ? "📬" : "📪"} hanako の箱{stored ? "（1通）" : ""}
             </text>
@@ -192,9 +202,7 @@ export default function MailJourney({ journey, onDone, compact }: { journey: Jou
           {(Object.keys(NODES) as NodeId[]).map((id) => (
             <Node key={id} id={id} active={activeColor(id)} sleeping={id === "phone" && !phoneAwake} />
           ))}
-          {shown.map((s, i) => (
-            <Arrow key={`${journey.id}-${i}`} step={s} current={i === step - 1} animate={animate && i === step - 1} />
-          ))}
+          {shown.map((s, i) => (s.kind === "store" ? null : <Arrow key={`${journey.id}-${i}`} step={s} current={i === step - 1} animate={animate && i === step - 1} />))}
         </Box>
       </Box>
       <Paper
@@ -210,7 +218,8 @@ export default function MailJourney({ journey, onDone, compact }: { journey: Jou
           <Typography variant="caption" fontWeight={700} color="text.secondary">
             {step === 0 ? "はじめ" : `ステップ ${step} / ${total}`}
           </Typography>
-          {current && (
+          {current?.no && <Chip size="small" label={`図4の ${CIRCLED[current.no - 1]}`} sx={{ height: 20, fontWeight: 700, color: "#fff", bgcolor: NO_COLOR }} />}
+          {current && current.kind !== "store" && (
             <Chip
               size="small"
               label={current.tag}

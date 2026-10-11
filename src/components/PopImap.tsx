@@ -29,6 +29,8 @@ const FIRST_MAILS: Mail[] = [
   { id: 2, subject: "宿題について", read: false },
   { id: 3, subject: "週末の予定", read: false },
 ];
+/** サーバのメールボックスの容量（通） */
+const CAPACITY = 5;
 const NEW_SUBJECTS = ["文化祭の準備", "写真を送ります", "明日の時間割", "委員会のお知らせ"];
 
 interface State {
@@ -135,8 +137,31 @@ export function PopImapPanel({ proto, onDone }: { proto: RecvProto; onDone?: () 
 
   const arrive = () => {
     const subject = NEW_SUBJECTS[(s.next - 4) % NEW_SUBJECTS.length];
+    if (s.server.length >= CAPACITY) {
+      setS({
+        ...s,
+        log:
+          proto === "imap"
+            ? `⚠️ サーバの容量（${CAPACITY} 通）がいっぱいで、新しいメール「${subject}」を保存できませんでした。IMAP ではメールがサーバにたまるので、いらないメールを削除する必要があります。`
+            : `⚠️ サーバの容量（${CAPACITY} 通）がいっぱいで、新しいメール「${subject}」を保存できませんでした。端末で受信すると、サーバのメールボックスが空きます。`,
+      });
+      return;
+    }
     setS({ ...s, server: [...s.server, { id: s.next, subject, read: false }], next: s.next + 1, log: `新しいメール「${subject}」がサーバのメールボックスに届きました。` });
   };
+
+  const removeRead = () => {
+    const keep = (list: Mail[] | null) => list && list.filter((m) => !m.read);
+    const removed = s.server.length - keep(s.server)!.length;
+    setS({
+      ...s,
+      server: keep(s.server)!,
+      devices: { pc: keep(s.devices.pc), phone: keep(s.devices.phone) },
+      log: removed > 0 ? `既読のメール ${removed} 通をサーバから削除しました。どの端末からも消え、サーバの容量が空きました。` : "既読のメールがありません。先にメールをクリックして読もう。",
+    });
+  };
+
+  const full = s.server.length >= CAPACITY;
 
   return (
     <Stack spacing={1} sx={{ border: 2, borderColor: p.color, borderRadius: 3, p: 1.25, bgcolor: p.bg, minWidth: 0 }}>
@@ -148,10 +173,13 @@ export function PopImapPanel({ proto, onDone }: { proto: RecvProto; onDone?: () 
           <Typography variant="body2" fontWeight={700}>
             📥 サーバのメールボックス
           </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {s.server.length} 通
+          <Typography variant="caption" fontWeight={full ? 700 : 400} color={full ? "error" : "text.secondary"}>
+            {s.server.length} / {CAPACITY} 通{full ? "（満杯）" : ""}
           </Typography>
         </Stack>
+        <Box sx={{ height: 6, bgcolor: "#eceff1", borderRadius: 3, mb: 0.75, overflow: "hidden" }}>
+          <Box sx={{ height: "100%", width: `${(s.server.length / CAPACITY) * 100}%`, bgcolor: full ? "error.main" : p.color, transition: "width 0.3s" }} />
+        </Box>
         <MailList mails={s.server} empty="（空っぽ）" />
       </Paper>
       <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1 }}>
@@ -187,6 +215,11 @@ export function PopImapPanel({ proto, onDone }: { proto: RecvProto; onDone?: () 
         <Button size="small" variant="outlined" onClick={arrive}>
           ✉️ 新しいメールが届く
         </Button>
+        {proto === "imap" && (
+          <Button size="small" variant="outlined" onClick={removeRead}>
+            🗑️ 既読メールを削除
+          </Button>
+        )}
         <Button size="small" startIcon={<ReplayIcon />} onClick={() => setS(initial())}>
           リセット
         </Button>

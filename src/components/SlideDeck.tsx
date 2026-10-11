@@ -18,7 +18,7 @@ import { CHAPTERS, QUIZ_COLOR, SLIDES, quizLabel, type Slide } from "@/lib/model
 import MailJourney from "./MailJourney";
 import PopImapStage from "./PopImap";
 import { BccQuiz, ChoiceQuizView, FinalTest, PhishingQuiz, Simulator, SortQuiz, type TestState } from "./Quizzes";
-import { AddressStage, AttachmentStage, DnsStage, EncryptStage, IntroStage, ProtocolTable, SceneStage, SmtpStage, SourceStage } from "./Stages";
+import { AddressStage, AttachmentStage, DnsStage, DomainStage, EncryptStage, FigureStage, IntroStage, ProtocolTable, SceneStage, SmtpStage, SourceStage } from "./Stages";
 
 const chapterOf = (slide: Slide) => CHAPTERS.find((c) => c.id === slide.chapter)!;
 
@@ -39,6 +39,10 @@ function StageView({ slide, test, onTest, onSeek }: { slide: Slide; test: TestSt
       return <SceneStage id={stage.id} />;
     case "address":
       return <AddressStage />;
+    case "domain":
+      return <DomainStage />;
+    case "figure":
+      return <FigureStage />;
     case "journey":
       return <MailJourney journey={JOURNEYS[stage.id]} />;
     case "simulator":

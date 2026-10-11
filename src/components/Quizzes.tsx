@@ -358,7 +358,7 @@ const PHISHING: { name: string; address: string; subject: string; body: string; 
   },
   {
     name: "はなこ",
-    address: "hanako@beta.example.com",
+    address: "hanako@example.ed.jp",
     subject: "明日の部活",
     body: "明日は体育館に 9 時集合です。タオルを忘れずに！",
     safe: true,
@@ -467,7 +467,7 @@ export function FinalTest({ state, onChange, onSeek }: { state: TestState; onCha
               value={name}
               onChange={(e) => onChange({ ...state, name: e.target.value })}
             />
-            <Typography fontWeight={700}>{score === TEST_QUESTIONS.length ? "全問正解です！" : score >= 6 ? "よくできました。× の問題を見直そう。" : "説明のスライドに戻って確認しよう。"}</Typography>
+            <Typography fontWeight={700}>{score === TEST_QUESTIONS.length ? "全問正解です！" : score >= 7 ? "よくできました。× の問題を見直そう。" : "説明のスライドに戻って確認しよう。"}</Typography>
           </Stack>
         </Stack>
         <Stack spacing={0.75}>

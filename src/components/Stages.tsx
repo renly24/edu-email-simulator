@@ -15,7 +15,7 @@ const mono = { fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monos
 // ---------- 第1章：郵便とメール ----------
 
 const POSTAL: { post: string; mail: string }[] = [
-  { post: "📮 ポスト", mail: "📤 送信サーバ" },
+  { post: "📮 ポスト", mail: "📤 自分のメールサーバ" },
   { post: "🏤 郵便局", mail: "🖥️ メールサーバ" },
   { post: "📫 相手の郵便受け", mail: "📬 メールボックス" },
   { post: "🏠 住所", mail: "ドメイン名（@ の右側）" },
@@ -128,12 +128,12 @@ export function SceneStage({ id }: { id: "offline" | "pop" }) {
 
 const ADDRESS_PARTS = [
   { text: "hanako", name: "ユーザ名", color: RECV.pop.color, note: "サーバの中の、だれのメールボックスかを表す「宛名」。同じドメインの中では重ならないように決められます。" },
-  { text: "@", name: "アットマーク", color: "#455a64", note: "ユーザ名とドメイン名の区切り。英語の at（〜にいる）の意味で、「beta.example.com にいる hanako」と読めます。" },
+  { text: "@", name: "アットマーク", color: "#455a64", note: "ユーザ名とドメイン名の区切り。英語の at（〜にいる）の意味で、「example.ed.jp にいる hanako」と読めます。" },
   {
-    text: "beta.example.com",
+    text: "example.ed.jp",
     name: "ドメイン名",
     color: SMTP_COLOR,
-    note: "どの組織のメールサーバに届けるかを表す「住所」。右から com（国際的な商用）→ example → beta と、だんだん細かくなります。学校なら ○○.ed.jp、会社なら ○○.co.jp などがあります。",
+    note: "どの組織のメールサーバに届けるかを表す「住所」。右から jp（日本）→ ed（小・中学校、高等学校）→ example（組織名）と読みます。くわしくは次のスライドで。",
   },
 ];
 
@@ -198,8 +198,8 @@ export function AddressStage() {
       </Paper>
       <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, width: "100%" }}>
         {[
-          { a: "hanako@beta.example.com", n: "はなこ" },
-          { a: "jiro@beta.example.com", n: "じろう（はなこと同じ学校）" },
+          { a: "hanako@example.ed.jp", n: "はなこ" },
+          { a: "jiro@example.ed.jp", n: "じろう（はなこと同じ学校）" },
         ].map((x) => (
           <Paper key={x.a} variant="outlined" sx={{ p: 1, textAlign: "center" }}>
             <Typography variant="body2" sx={{ ...mono, fontWeight: 700, wordBreak: "break-all" }}>
@@ -218,15 +218,176 @@ export function AddressStage() {
   );
 }
 
+// ---------- ドメイン名のしくみ（教科書の図3・表1） ----------
+
+const URL_PARTS: { text: string; name?: string; color?: string }[] = [
+  { text: "https", name: "スキーム名", color: "#f9a825" },
+  { text: "://" },
+  { text: "www", name: "ホスト名", color: "#283593" },
+  { text: "." },
+  { text: "example", name: "組織名", color: "#2e7d32" },
+  { text: "." },
+  { text: "ed", name: "組織種別", color: "#0097a7" },
+  { text: "." },
+  { text: "jp", name: "トップレベル\nドメイン", color: "#8e5bb5" },
+  { text: "/" },
+  { text: "index.html", name: "ファイル名", color: "#d81b60" },
+];
+
+const MAIL_PARTS: { text: string; name?: string; color?: string }[] = [
+  { text: "hanako", name: "ユーザ名", color: RECV.pop.color },
+  { text: "@" },
+  { text: "example", name: "組織名", color: "#2e7d32" },
+  { text: "." },
+  { text: "ed", name: "組織種別", color: "#0097a7" },
+  { text: "." },
+  { text: "jp", name: "トップレベル\nドメイン", color: "#8e5bb5" },
+];
+
+const JP_DOMAINS: { type: string; who: string }[] = [
+  { type: "co.jp", who: "会社など" },
+  { type: "or.jp", who: "法人組織など" },
+  { type: "ne.jp", who: "ネットワークサービス提供者" },
+  { type: "ac.jp", who: "大学など" },
+  { type: "ed.jp", who: "小・中学校、高等学校など" },
+  { type: "go.jp", who: "政府機関" },
+  { type: "gr.jp", who: "個人や法人の任意団体" },
+  { type: "lg.jp", who: "地方公共団体など" },
+];
+
+function Parts({ parts, label }: { parts: typeof URL_PARTS; label: string }) {
+  return (
+    <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
+      <Typography fontWeight={700} sx={{ width: 64, pt: 0.5, flexShrink: 0, fontSize: "0.85rem" }}>
+        {label}
+      </Typography>
+      <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", minWidth: 0 }}>
+        {parts.map((p, i) => (
+          <Box key={i} sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <Typography sx={{ ...mono, fontWeight: 700, fontSize: { xs: "0.85rem", sm: "1.05rem" }, borderBottom: p.color ? `3px solid ${p.color}` : "3px solid transparent", px: 0.2 }}>
+              {p.text}
+            </Typography>
+            {p.name && (
+              <Box sx={{ mt: 0.5, px: 0.75, borderRadius: 3, bgcolor: p.color, color: "#fff", fontSize: "0.6rem", fontWeight: 700, whiteSpace: "pre", textAlign: "center", lineHeight: 1.3 }}>
+                {p.name}
+              </Box>
+            )}
+          </Box>
+        ))}
+      </Box>
+    </Box>
+  );
+}
+
+export function DomainStage() {
+  const [picked, setPicked] = useState<string | null>(null);
+  const hit = JP_DOMAINS.find((d) => d.type === picked);
+  return (
+    <Stack spacing={1.5}>
+      <Paper variant="outlined" sx={{ p: 1.25, display: "flex", flexDirection: "column", gap: 1.25 }}>
+        <Parts parts={URL_PARTS} label="URL" />
+        <Parts parts={MAIL_PARTS} label="メール" />
+        <Typography variant="caption" color="text.secondary">
+          Web ページの URL も、メールアドレスも、同じドメイン名「example.ed.jp」を使っています。
+        </Typography>
+      </Paper>
+      <Box>
+        <Typography variant="body2" fontWeight={700} mb={0.5}>
+          JP ドメイン名の種類（クリックして確かめよう）
+        </Typography>
+        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 0.5 }}>
+          {JP_DOMAINS.map((d) => (
+            <Button key={d.type} size="small" variant={picked === d.type ? "contained" : "outlined"} onClick={() => setPicked(d.type)} sx={{ ...mono, textTransform: "none", fontWeight: 700 }}>
+              {d.type}
+            </Button>
+          ))}
+        </Box>
+        <Paper variant="outlined" sx={{ mt: 1, p: 1, minHeight: 48, borderColor: hit ? "#0097a7" : "#cfd8dc" }}>
+          {hit ? (
+            <Typography variant="body2" fontWeight={700}>
+              <Box component="span" sx={{ ...mono, color: "#0097a7" }}>
+                ○○.{hit.type}
+              </Box>
+              ：{hit.who}
+            </Typography>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              ドメイン名を見ると、どんな組織のものかがわかります。
+            </Typography>
+          )}
+        </Paper>
+        <Typography variant="caption" color="text.secondary">
+          このほか、都道府県や市区町村の名前を使う「地域型」（例：tokyo.jp）もあります。ドメイン名の表記は、原則として大文字・小文字を区別しません。
+        </Typography>
+      </Box>
+    </Stack>
+  );
+}
+
+// ---------- 電子メールのしくみ（教科書の図4） ----------
+
+const FIGURE_STEPS: { no: string; text: string; tag: string; color: string }[] = [
+  { no: "1", text: "送信者は、メールソフトなどで自分のメールサーバにメールを送信する。", tag: "SMTP", color: SMTP_COLOR },
+  { no: "2", text: "メールサーバは、DNS サーバの返答をもとに、届け先のメールサーバにメールを転送する。", tag: "SMTP・DNS", color: SMTP_COLOR },
+  { no: "3", text: "届け先のメールサーバは、受け取ったメールをメールボックスに保存する。", tag: "保存", color: "#7e57c2" },
+  { no: "4", text: "受信者は、メールサーバからメールを読む。", tag: "POP・IMAP", color: RECV.pop.color },
+];
+
+const FIGURE_FLOW: { icon?: string; label: string }[] = [
+  { icon: "🧑‍💻", label: "送信者" },
+  { label: "①→" },
+  { icon: "🖥️", label: "メールサーバ" },
+  { label: "②→" },
+  { icon: "🖥️📬", label: "メールサーバ\n③ 保存" },
+  { label: "④→" },
+  { icon: "👩‍🎓", label: "受信者" },
+];
+
+export function FigureStage() {
+  return (
+    <Stack spacing={1.25}>
+      <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 0.5, textAlign: "center" }}>
+        {FIGURE_FLOW.map((f, i) =>
+          f.icon ? (
+            <Stack key={i} alignItems="center" sx={{ minWidth: 64 }}>
+              <Typography sx={{ fontSize: "1.7rem", lineHeight: 1.2 }}>{f.icon}</Typography>
+              <Typography variant="caption" fontWeight={700} sx={{ lineHeight: 1.3, whiteSpace: "pre-line" }}>
+                {f.label}
+              </Typography>
+            </Stack>
+          ) : (
+            <Typography key={i} fontWeight={700} sx={{ color: "#7e57c2" }}>
+              {f.label}
+            </Typography>
+          ),
+        )}
+      </Box>
+      <Stack spacing={0.75} sx={{ bgcolor: "#f3eef9", borderRadius: 2, p: 1.25 }}>
+        {FIGURE_STEPS.map((f) => (
+          <Stack key={f.no} direction="row" spacing={1} alignItems="flex-start">
+            <Box sx={{ width: 22, height: 22, flexShrink: 0, borderRadius: 0.5, bgcolor: "#7e57c2", color: "#fff", fontWeight: 700, fontSize: "0.8rem", display: "grid", placeItems: "center" }}>
+              {f.no}
+            </Box>
+            <Typography variant="body2" sx={{ flex: 1, lineHeight: 1.6 }}>
+              {f.text}
+            </Typography>
+            <Chip size="small" label={f.tag} sx={{ height: 20, fontWeight: 700, color: "#fff", bgcolor: f.color }} />
+          </Stack>
+        ))}
+      </Stack>
+    </Stack>
+  );
+}
+
 // ---------- SMTP の会話 ----------
 
 const SMTP_TALK: { from: "c" | "s"; cmd: string; ja: string }[] = [
-  { from: "s", cmd: "220 mail.beta.example.com", ja: "はい、beta のメールサーバです" },
-  { from: "c", cmd: "HELO smtp.alpha.example.jp", ja: "こんにちは。alpha の送信サーバです" },
+  { from: "s", cmd: "220 mail.example.ed.jp", ja: "はい、example.ed.jp のメールサーバです" },
+  { from: "c", cmd: "HELO smtp.example.ne.jp", ja: "こんにちは。example.ne.jp のメールサーバです" },
   { from: "s", cmd: "250 OK", ja: "どうぞ" },
-  { from: "c", cmd: "MAIL FROM:<taro@alpha.example.jp>", ja: "差出人は taro です" },
+  { from: "c", cmd: "MAIL FROM:<taro@example.ne.jp>", ja: "差出人は taro です" },
   { from: "s", cmd: "250 OK", ja: "わかりました" },
-  { from: "c", cmd: "RCPT TO:<hanako@beta.example.com>", ja: "宛先は hanako です" },
+  { from: "c", cmd: "RCPT TO:<hanako@example.ed.jp>", ja: "宛先は hanako です" },
   { from: "s", cmd: "250 OK", ja: "hanako さんはいます" },
   { from: "c", cmd: "DATA", ja: "メールの中身を送ります" },
   { from: "s", cmd: "354 Start mail input", ja: "どうぞ。最後は「.」だけの行で" },
@@ -242,8 +403,8 @@ export function SmtpStage() {
   return (
     <Stack spacing={1}>
       <Stack direction="row" justifyContent="space-between">
-        <Chip label="📤 送信サーバ（alpha）" sx={{ fontWeight: 700, bgcolor: "#e3f2fd", color: SMTP_COLOR }} />
-        <Chip label="📥 受信サーバ（beta）" sx={{ fontWeight: 700, bgcolor: "#fff3e0", color: RECV.pop.color }} />
+        <Chip label="📤 たろう側のメールサーバ" sx={{ fontWeight: 700, bgcolor: "#e3f2fd", color: SMTP_COLOR }} />
+        <Chip label="📥 はなこ側のメールサーバ" sx={{ fontWeight: 700, bgcolor: "#fff3e0", color: RECV.pop.color }} />
       </Stack>
       <Stack spacing={0.5}>
         {SMTP_TALK.slice(0, count).map((m, i) => {
@@ -293,12 +454,12 @@ export function SmtpStage() {
 // ---------- DNS の問い合わせ ----------
 
 const MX_TABLE = [
-  { domain: "alpha.example.jp", server: "smtp.alpha.example.jp", ip: "198.51.100.10" },
-  { domain: "beta.example.com", server: "mail.beta.example.com", ip: "192.0.2.25" },
-  { domain: "gamma.example.ed.jp", server: "mx.gamma.example.ed.jp", ip: "203.0.113.7" },
+  { domain: "example.ne.jp", server: "smtp.example.ne.jp", ip: "198.51.100.10" },
+  { domain: "example.ed.jp", server: "mail.example.ed.jp", ip: "192.0.2.25" },
+  { domain: "example.go.jp", server: "mx.example.go.jp", ip: "203.0.113.7" },
 ];
 
-const DNS_QUERIES = ["hanako@beta.example.com", "hanaco@beta.example.com", "hanako@beta.exmaple.com", "sensei@gamma.example.ed.jp"];
+const DNS_QUERIES = ["hanako@example.ed.jp", "hanaco@example.ed.jp", "hanako@exmaple.ed.jp", "info@example.go.jp"];
 
 export function DnsStage() {
   const [query, setQuery] = useState<string | null>(null);
@@ -319,7 +480,7 @@ export function DnsStage() {
       {query && (
         <Paper key={query} variant="outlined" sx={{ p: 1, borderColor: DNS_COLOR, bgcolor: "#f3e5f5" }}>
           <Typography variant="body2" fontWeight={700}>
-            📤 送信サーバ：「
+            📤 自分のメールサーバ：「
             <Box component="span" sx={{ ...mono, color: DNS_COLOR }}>
               {domain}
             </Box>{" "}
@@ -373,22 +534,22 @@ export function DnsStage() {
 
 const SOURCE_LINES: { text: string; name?: string; note?: string; body?: boolean }[] = [
   {
-    text: "Received: from smtp.alpha.example.jp by mail.beta.example.com; Sat, 10 Oct 2026 18:30:05 +0900",
+    text: "Received: from smtp.example.ne.jp by mail.example.ed.jp; Sat, 10 Oct 2026 18:30:05 +0900",
     name: "Received（経由の記録）",
-    note: "メールを受け取ったサーバが、上に1行ずつ書き足していきます。下から上へ読むと、メールがたどった道すじがわかります。これは「はなこのサーバが alpha の送信サーバから受け取った」記録です。",
+    note: "メールを受け取ったサーバが、上に1行ずつ書き足していきます。下から上へ読むと、メールがたどった道すじがわかります。これは「はなこのサーバが alpha のたろうのメールサーバから受け取った」記録です。",
   },
   {
-    text: "Received: from [192.168.1.20] by smtp.alpha.example.jp; Sat, 10 Oct 2026 18:30:04 +0900",
+    text: "Received: from [192.168.1.20] by smtp.example.ne.jp; Sat, 10 Oct 2026 18:30:04 +0900",
     name: "Received（経由の記録）",
-    note: "いちばん下の Received は、最初の区間の記録です。たろうのパソコンから、alpha の送信サーバが受け取りました。",
+    note: "いちばん下の Received は、最初の区間の記録です。たろうのパソコンから、たろう側のメールサーバ（smtp.example.ne.jp）が受け取りました。",
   },
-  { text: "From: たろう <taro@alpha.example.jp>", name: "From（差出人）", note: "差出人の名前とアドレス。メールソフトで自由に書けてしまうので、なりすましに使われることがあります。" },
-  { text: "To: はなこ <hanako@beta.example.com>", name: "To（宛先）", note: "宛先。複数の人に送るときは「,」で区切って並べます。" },
-  { text: "Cc: じろう <jiro@beta.example.com>", name: "Cc（写し）", note: "写しを送る相手。To と同じように、受け取った全員に見えます。BCC はここには書かれません。" },
+  { text: "From: たろう <taro@example.ne.jp>", name: "From（差出人）", note: "差出人の名前とアドレス。メールソフトで自由に書けてしまうので、なりすましに使われることがあります。" },
+  { text: "To: はなこ <hanako@example.ed.jp>", name: "To（宛先）", note: "宛先。複数の人に送るときは「,」で区切って並べます。" },
+  { text: "Cc: じろう <jiro@example.ed.jp>", name: "Cc（写し）", note: "写しを送る相手。To と同じように、受け取った全員に見えます。BCC はここには書かれません。" },
   { text: "Subject: 明日の部活", name: "Subject（件名）", note: "件名。日本語は、送るときに英数字の記号に変換して書かれています（ここでは読みやすく表示）。" },
   { text: "Date: Sat, 10 Oct 2026 18:30:00 +0900", name: "Date（日時）", note: "メールを作った日時。+0900 は日本時間（世界標準時より9時間進んでいる）という意味です。" },
   {
-    text: "Message-ID: <20261010183000.1234@alpha.example.jp>",
+    text: "Message-ID: <20261010183000.1234@example.ne.jp>",
     name: "Message-ID",
     note: "メール1通ごとに付けられる、世界で1つだけの番号。返信のときに、どのメールへの返事かを結びつけるのに使います。",
   },
@@ -618,7 +779,7 @@ export function EncryptStage() {
 
 const TABLE_ROWS: { label: string; smtp: string; pop: string; imap: string }[] = [
   { label: "役割", smtp: "メールを送る・転送する", pop: "メールを受け取る", imap: "メールを受け取る" },
-  { label: "使う区間", smtp: "端末 → 送信サーバ\nサーバ → サーバ", pop: "サーバ → 端末", imap: "サーバ ⇄ 端末" },
+  { label: "使う区間", smtp: "端末 → メールサーバ\nサーバ → サーバ", pop: "サーバ → 端末", imap: "サーバ ⇄ 端末" },
   { label: "受信後のメール", smtp: "―", pop: "端末に移る\n（サーバから消える）", imap: "サーバに残る" },
   { label: "複数の端末", smtp: "―", pop: "向いていない", imap: "向いている\n（既読もそろう）" },
   { label: "ポート番号", smtp: "25・587\n（暗号化 465）", pop: "110\n（暗号化 995）", imap: "143\n（暗号化 993）" },

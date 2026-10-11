@@ -6,9 +6,9 @@ export type NodeId = "pc" | "send" | "dns" | "recv" | "phone";
 
 export const NODES: Record<NodeId, { x: number; y: number; icon: string; name: string; sub: string }> = {
   pc: { x: 72, y: 220, icon: "💻", name: "たろうのPC", sub: "メールソフト" },
-  send: { x: 285, y: 220, icon: "📤", name: "送信サーバ", sub: "smtp.alpha.example.jp" },
+  send: { x: 285, y: 220, icon: "📤", name: "メールサーバ", sub: "smtp.example.ne.jp" },
   dns: { x: 460, y: 62, icon: "📖", name: "DNS サーバ", sub: "ドメイン名の電話帳" },
-  recv: { x: 660, y: 220, icon: "📥", name: "受信サーバ", sub: "mail.beta.example.com" },
+  recv: { x: 660, y: 220, icon: "📥", name: "メールサーバ", sub: "mail.example.ed.jp" },
   phone: { x: 836, y: 62, icon: "📱", name: "はなこのスマホ", sub: "メールアプリ" },
 };
 
@@ -20,7 +20,7 @@ export const TAG_COLOR: Record<ProtoTag, string> = {
   "POP/IMAP": RECV_COLOR,
 };
 
-export type StepKind = "mail" | "ask" | "answer" | "error";
+export type StepKind = "mail" | "ask" | "answer" | "error" | "store";
 
 export interface JourneyStep {
   from: NodeId;
@@ -29,6 +29,8 @@ export interface JourneyStep {
   tag: ProtoTag;
   /** 線の横に出す短い言葉 */
   say: string;
+  /** 教科書の図4の番号（①〜④） */
+  no?: 1 | 2 | 3 | 4;
   text: string;
 }
 
@@ -47,7 +49,7 @@ export interface Journey {
   ok: boolean;
 }
 
-export const TOKEN: Record<StepKind, string> = { mail: "✉️", ask: "❓", answer: "💡", error: "⚠️" };
+export const TOKEN: Record<StepKind, string> = { mail: "✉️", ask: "❓", answer: "💡", error: "⚠️", store: "📬" };
 
 const sendToServer = (to: string): JourneyStep => ({
   from: "pc",
@@ -55,7 +57,8 @@ const sendToServer = (to: string): JourneyStep => ({
   kind: "mail",
   tag: "SMTP",
   say: "送って",
-  text: `たろうのメールソフトが、SMTP で自分の組織の送信サーバ（smtp.alpha.example.jp）にメールを渡します。宛先は ${to} です。`,
+  no: 1,
+  text: `たろうのメールソフトが、SMTP で自分のメールサーバ（smtp.example.ne.jp）にメールを渡します。宛先は ${to} です。`,
 });
 
 const askDns = (domain: string): JourneyStep => ({
@@ -64,7 +67,8 @@ const askDns = (domain: string): JourneyStep => ({
   kind: "ask",
   tag: "DNS",
   say: `${domain} は？`,
-  text: `送信サーバは、宛先の @ より右側「${domain}」のメールを受け取るサーバはどこ？と DNS サーバに問い合わせます。`,
+  no: 2,
+  text: `たろうのメールサーバは、宛先の @ より右側「${domain}」のメールを受け取るサーバはどこ？と DNS サーバに問い合わせます。`,
 });
 
 const answerDns: JourneyStep = {
@@ -72,8 +76,9 @@ const answerDns: JourneyStep = {
   to: "send",
   kind: "answer",
   tag: "DNS",
-  say: "mail.beta.example.com",
-  text: "DNS サーバが「beta.example.com のメールサーバは mail.beta.example.com（192.0.2.25）だよ」と答えます。これを MX レコードといいます。",
+  say: "mail.example.ed.jp",
+  no: 2,
+  text: "DNS サーバが「example.ed.jp のメールサーバは mail.example.ed.jp（192.0.2.25）だよ」と答えます。これを MX レコードといいます。",
 };
 
 const relay = (user: string): JourneyStep => ({
@@ -82,7 +87,8 @@ const relay = (user: string): JourneyStep => ({
   kind: "mail",
   tag: "SMTP",
   say: `${user} さんへ`,
-  text: `送信サーバは、教わったはなこのメールサーバに SMTP でつなぎ、「${user} さんあてのメールです」と転送します。`,
+  no: 2,
+  text: `たろうのメールサーバは、DNS サーバの返答をもとに、届け先のはなこのメールサーバへ SMTP で「${user} さんあてのメールです」と転送します。`,
 });
 
 export const JOURNEYS: Record<JourneyId, Journey> = {
@@ -93,11 +99,17 @@ export const JOURNEYS: Record<JourneyId, Journey> = {
     intro: `たろうがメールソフトで、はなこ（${HANAKO.address}）あてのメールを書きました。はなこのスマホは、いま電源が切れています。「1つ進める」を押そう。`,
     steps: [
       sendToServer(HANAKO.address),
-      askDns("beta.example.com"),
+      askDns("example.ed.jp"),
       answerDns,
+      relay("hanako"),
       {
-        ...relay("hanako"),
-        text: "送信サーバは、教わったはなこのメールサーバに SMTP でつなぎ、メールを転送します。受け取ったサーバは、@ より左側「hanako」のメールボックスにメールを保管します。スマホの電源が切れていても、メールはここで待っています。",
+        from: "recv",
+        to: "recv",
+        kind: "store",
+        tag: "SMTP",
+        say: "保存",
+        no: 3,
+        text: "はなこのメールサーバは、受け取ったメールを @ より左側「hanako」のメールボックスに保存します。はなこのスマホの電源が切れていても、メールはここで待っています。",
       },
       {
         from: "phone",
@@ -105,6 +117,7 @@ export const JOURNEYS: Record<JourneyId, Journey> = {
         kind: "ask",
         tag: "POP/IMAP",
         say: "新着ある？",
+        no: 4,
         text: "あとで、はなこがスマホの電源を入れてメールアプリを開くと、POP か IMAP で「新しいメールはある？」と自分のメールサーバに問い合わせます。",
       },
       {
@@ -113,6 +126,7 @@ export const JOURNEYS: Record<JourneyId, Journey> = {
         kind: "mail",
         tag: "POP/IMAP",
         say: "1通あるよ",
+        no: 4,
         text: "メールがはなこのスマホに届きました！ 送るときは SMTP、相手のサーバを探すのは DNS、受け取るときは POP か IMAP と、区間ごとにプロトコルを使い分けてリレーしています。",
       },
     ],
@@ -122,13 +136,13 @@ export const JOURNEYS: Record<JourneyId, Journey> = {
   },
   badUser: {
     id: "badUser",
-    to: "hanaco@beta.example.com",
+    to: "hanaco@example.ed.jp",
     label: "ユーザ名のまちがい",
-    intro: "たろうは「hanako」を「hanaco」と打ち間違えて、hanaco@beta.example.com に送ってしまいました。「1つ進める」を押そう。",
+    intro: "たろうは「hanako」を「hanaco」と打ち間違えて、hanaco@example.ed.jp に送ってしまいました。「1つ進める」を押そう。",
     steps: [
-      sendToServer("hanaco@beta.example.com"),
-      askDns("beta.example.com"),
-      { ...answerDns, text: "ドメイン名「beta.example.com」は正しいので、DNS サーバは「mail.beta.example.com だよ」と、はなこのメールサーバを答えます。" },
+      sendToServer("hanaco@example.ed.jp"),
+      askDns("example.ed.jp"),
+      { ...answerDns, text: "ドメイン名「example.ed.jp」は正しいので、DNS サーバは「mail.example.ed.jp だよ」と、はなこのメールサーバを答えます。" },
       relay("hanaco"),
       {
         from: "recv",
@@ -144,7 +158,7 @@ export const JOURNEYS: Record<JourneyId, Journey> = {
         kind: "error",
         tag: "SMTP",
         say: "エラーメール",
-        text: "送信サーバは「宛先不明で届けられませんでした」というエラーメール（MAILER-DAEMON から届く）をたろうに返します。たろうはアドレスのまちがいに気づけます。",
+        text: "たろうのメールサーバは「宛先不明で届けられませんでした」というエラーメール（MAILER-DAEMON から届く）をたろうに返します。たろうはアドレスのまちがいに気づけます。",
       },
     ],
     stored: false,
@@ -153,19 +167,19 @@ export const JOURNEYS: Record<JourneyId, Journey> = {
   },
   badDomain: {
     id: "badDomain",
-    to: "hanako@beta.exmaple.com",
+    to: "hanako@exmaple.ed.jp",
     label: "ドメイン名のまちがい",
-    intro: "たろうは「example」を「exmaple」と打ち間違えて、hanako@beta.exmaple.com に送ってしまいました。「1つ進める」を押そう。",
+    intro: "たろうは「example」を「exmaple」と打ち間違えて、hanako@exmaple.ed.jp に送ってしまいました。「1つ進める」を押そう。",
     steps: [
-      sendToServer("hanako@beta.exmaple.com"),
-      askDns("beta.exmaple.com"),
+      sendToServer("hanako@exmaple.ed.jp"),
+      askDns("exmaple.ed.jp"),
       {
         from: "dns",
         to: "send",
         kind: "error",
         tag: "DNS",
         say: "見つからない",
-        text: "「beta.exmaple.com」というドメイン名は登録されていないので、DNS サーバは「そのドメインのメールサーバは見つからない」と答えます。",
+        text: "「exmaple.ed.jp」というドメイン名は登録されていないので、DNS サーバは「そのドメインのメールサーバは見つからない」と答えます。",
       },
       {
         from: "send",
@@ -173,11 +187,11 @@ export const JOURNEYS: Record<JourneyId, Journey> = {
         kind: "error",
         tag: "SMTP",
         say: "エラーメール",
-        text: "送り先のサーバがわからないので、送信サーバは「届けられませんでした（Host not found）」というエラーメールをたろうに返します。メールは、はなこのサーバまで行くこともできませんでした。",
+        text: "送り先のサーバがわからないので、たろうのメールサーバは「届けられませんでした（Host not found）」というエラーメールをたろうに返します。メールは、はなこのサーバまで行くこともできませんでした。",
       },
     ],
     stored: false,
-    result: "相手のサーバが見つからず、送信サーバからエラーメールが返ってきた",
+    result: "相手のサーバが見つからず、たろうのメールサーバからエラーメールが返ってきた",
     ok: false,
   },
 };
